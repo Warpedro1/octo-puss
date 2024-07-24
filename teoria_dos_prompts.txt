@@ -1,0 +1,75 @@
+<<<PERSONAS EM POMPTS>>>
+- Seria atribuir uma personalidade a IA, para que ela adote um estilo ou prspectiva
+- A especificidade é primordial: quanto mais detalhes tiverem, quanto mais assertivos forem os comandos, melhores os resultado
+
+<<<interligando Persoas e Imagens>>>
+- ao atriubuir uma persona no prompt para a IA gerar uma imagem, ela criara a imagem com base na perspectiva dessa persona
+- é possivel combinar personas e perspectivas 
+- Gerar imagens 3D, aspectos artisticos, ...
+- Tem problema com a negacao de de elementos presentes a imagem
+- Quanto mais fordetalhado for o prompt amior a probabilidade da IA gerar uma imagem precisa 
+
+<<<DALL-E>>>
+- criar imagens (dall-e2 e dall-e3)
+- editar imagens e criar variações de imagens (dall-e2)
+- O dall-e vai reescrever seu prompt (questoes d e segurança) e adicionar detalhes (qunato mais detalhes mais preciso sera a image)
+- Pode-se usar o seguinte prompt para testar como o a ferramenta funciona e ter um resultado mais aproximado do prompt original:
+    "I NEED to test how the tool works with extremely simple prompts. DO NOT add any detail, just use it AS-IS: "
+- a saida vira no mdodo de url(expirará em uma hora) ou de Base64
+- para usar a mask (dall-e-2) é necessario que tanto a imagem qunato a mascara sejam:
+    + quadradas
+    + 4MB de tamanho
+    + possuir as mesmas dimensões
+- !!! a area nao transparente da mascara nao precisa ser igual a outra areada imagem
+- sizes = 1024x1024, 1024x1792 or 1792x1024
+- quality = standart or hd
+- so o dall-e-2 pode aceitar mais de um (ate 10) pedidos de imagens sequenciais
+- style pod ser natural ou vivid
+    + natural -> imagens mais reais, menos hyper-real 
+    + vivid -> hyper-real and imagens dramaticas.
+
+    client.images.generate(
+        model="dall-e-3"
+        prompt=
+        size        
+        quality
+        n
+        style
+    )
+
+    client.images.edit(
+        model =dall-e-2
+        image
+        maskprompt
+        n
+        size
+    )
+
+    client.images.create_variations(
+        model
+        image
+        n
+        size
+    )
+
+    resposta.data[0].url
+
+from io import BytesIO
+from PIL import Image
+from openai import OpenAI
+client = OpenAI()
+
+# Read the image file from disk and resize it
+image = Image.open("image.png")
+width, height = 256, 256
+image = image.resize((width, height))
+
+# Convert the image to a BytesIO object
+byte_stream = BytesIO()
+image.save(byte_stream, format='PNG')
+byte_array = byte_stream.getvalue()
+
+byte_stream: BytesIO = [your image data]
+byte_array = byte_stream.getvalue()
+
+https://cookbook.openai.com/articles/what_is_new_with_dalle_3

@@ -18,7 +18,6 @@ def salva(nome_arquivo, conteudo):
     except IOError as e:
         print(f"Erro {e} ao tentar salvar o arquivo {arquivo}")
 
-
 def openai_whisper(caminho, nome_arquivo, modelo, client):
     print("Iniciando tanscricao com whispers . . .")
 
@@ -72,7 +71,7 @@ def resumir( conteudo, nome_arquivo, client):
 
     resposta = chat(messages, client,"gpt-3.5-turbo-16k", temperature=0.6 )  #"gpt-3.5-turbo-16k"pode consumir ate 16mil tokens de acesso
 
-    resumo_instagram = resposta.choices[0].message.content
+    resumo_instagram = resposta
 
     salva(f"resposta_insta.txt",resumo_instagram)
 
@@ -107,6 +106,7 @@ def criar_hashtag(resumo, arquivo, client):
 
     resposta = chat(messages,client, "gpt-3.5-turbo")
     salva(f"respota_hashtags.txt",resposta)
+    return resposta
     
 def chat(messages, client, modelo, temperature = None):
     try:
@@ -121,11 +121,36 @@ def chat(messages, client, modelo, temperature = None):
     except openai.OpenAIError as e:
         print(f"Erro de comunicacao {e}")
 
+def gerar_texto_imagem(resumo, nome_arquivo, client):
+    print("GERANDO TEXTO PARA CRIACAO DE IMAGEM . . .")
+    
+    prompt_sistema="""
+    - A saída deve ser uma única, do tamanho de um tweet, que seja capaz de descrever o conteúdo do texto para que possa ser transcrito como uma imagem.
+    - Não inclua hashtags
+    """
+
+    prompt_usuario = f'Reescreva o texto a seguir, em uma frase, para que descrever o texto abaixo em um tweet: {resumo}'
+
+    messages = [
+        {
+            "role":"system",
+            "content":prompt_sistema
+        },
+        {
+            "role":"user",
+            "content":prompt_usuario
+        }
+    ]
+
+    resposta = chat(messages,client, "gpt-3.5-turbo", temperature=0.6)
+    salva(f"respota_texto_imagem.txt",resposta)
+    return resposta
+
 def main():
     load_dotenv()
     
     caminho_audio = "podcasts\WATCH_THIS_EVERYDAY_AND_CHANGE_YOUR_LIFE_Denzel_Washington_Motivational_Speech_2023.mp3"
-    nome_arquivo = "WATCH_THIS_EVERYDAY_AND_CHANGE_YOUR_LIFE_Denzel_Washington_Motivational_Speech_2023"
+    nome_arquivo = "Denzel_Washington_Motivational_Speech"
     url_video = "https://www.youtube.com/watch?v=tbnzAVRZ9Xc"
 
     client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -134,8 +159,14 @@ def main():
 
     #transcricao_completa = openai_whisper(caminho_audio, nome_arquivo, modelo_whisper, client)
     transcricao_completa = carrega("resposta_WATCH_THIS_EVERYDAY_AND_CHANGE_YOUR_LIFE_Denzel_Washington_Motivational_Speech_2023.txt", "r")
-    #resumo_intagram = resumir( transcricao_completa, nome_arquivo ,client)
+    
+    #resumo_instagram = resumir( transcricao_completa, nome_arquivo ,client)
     resumo_instagram = carrega("resposta_insta.txt","r")
-    hashtags = criar_hashtag(resumo_instagram,nome_arquivo,client)
+
+    #hashtags = criar_hashtag(resumo_instagram, nome_arquivo, client)
+    hashtags = carrega("respota_hashtags.txt","r")
+
+    resumo_texto_imagem = gerar_texto_imagem(resumo_instagram, nome_arquivo, client)
+    
 if __name__ == "__main__":
     main()
