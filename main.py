@@ -1,6 +1,8 @@
 import openai
 from dotenv import load_dotenv
 import os
+import requests
+from pydub import AudioSegment
 
 def carrega(caminho, modo):
     try: 
@@ -146,16 +148,108 @@ def gerar_texto_imagem(resumo, nome_arquivo, client):
     salva(f"respota_texto_imagem.txt",resposta)
     return resposta
 
+def openai_dalle_gerar_imagem(resolucao, resumo_para_imagem, modelo, client, qtd_imagens = 1):
+    print("Criando uma imagem utilizando a API do DALL-E ...")
+
+    prompt_user = "Crie uma foto de como se parece a pessoa que falou isso com base em esteriotipos sociais: " + resumo_para_imagem
+    
+    
+    try:
+        resposta = client.images.generate(
+        prompt =prompt_user,
+        n = qtd_imagens,
+        size = resolucao,
+        model = modelo
+    )
+        return resposta.data
+    except openai.AuthenticationError as e:
+        print(f"Erro de autenticacao {e}")
+    except openai.OpenAIError as e:
+        print(f"Erro de comunicacao {e}")
+
+def download_imagem(nome_arquivo, imagem, qtd_imagens = 1):
+    print("comecando download_imagem . . .")
+    nome_imagens = []
+    try:
+        for quantidade in range(0,qtd_imagens):
+            caminho = imagem[quantidade].url
+            image = requests.get(caminho)
+            with open(f"images/{nome_arquivo}_{quantidade}.png","wb") as arquivo:
+                arquivo.write(image.content)
+
+            nome_imagens.append(f"{nome_arquivo}_{quantidade}.png")
+        return nome_imagens
+    except IOError as e:
+        print(f"Erro: {e}")
+
+def audio_em_partes(caminho_audio, arquivo):
+    print("Iniciando audio em partes . . . ")
+
+    try:
+        audio = AudioSegment.from_mp3(caminho_audio)
+    except FileNotFoundError as e:
+        print(f"Erro not found: {e}")
+    except Exception as e:
+        print(f"Erro aqui: {e}")
+
+    dez_minutos = 10 * 60 * 1000 # milisegundos
+    count_pedaco = 1 
+    arquivos_exportados = []
+
+    while len(audio > 0):
+        pedaco = audio[:dez_minutos]
+        nome_pedaco = f"{arquivo}_parte_{count_pedaco}.mp3"
+        pedaco.export(nome_pedaco, format="mp3")
+        arquivos_exportados.append(nome_pedaco)
+        audio = audio[dez_minutos:]
+        count_pedaco+=1
+
+    return arquivos_exportados
+
+def openai_whisper_partes(caminho, nome_arquivo, modelo, client):
+    print("Iniciando tanscricao em partes com whispers . . .")
+
+    lista_arquivos_audios = audio_em_partes(caminho,nome_arquivo)
+    
+    pedacos_audio = []
+
+    for pedaco in lista_arquivos_audios:
+   
+        audio = open(caminho,"rb")
+
+        resposta = client.audio.transcriptions.create(
+            model = modelo,
+            file = audio,
+            #response_format="text"
+        )
+        
+        transcricao = resposta.text
+        pedacos_audio.append(transcricao)
+
+    transcricao = "".join(pedacos_audio)
+    """ traducao = client.audio.translations.create(
+        model=modelo,
+        file=audio
+    )
+    salva(f"traducao_{nome_arquivo}.txt" ,traducao.text) """
+
+    salva(f"respostas/resposta_{nome_arquivo}.txt" ,transcricao)
+    
+    return transcricao
+
 def main():
     load_dotenv()
     
     caminho_audio = "podcasts\WATCH_THIS_EVERYDAY_AND_CHANGE_YOUR_LIFE_Denzel_Washington_Motivational_Speech_2023.mp3"
-    nome_arquivo = "Denzel_Washington_Motivational_Speech"
+    nome_arquivo = "Motivational_Speech"
     url_video = "https://www.youtube.com/watch?v=tbnzAVRZ9Xc"
+    qtd_imagens = 2
 
     client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
     modelo_whisper ="whisper-1"
+
+    openai_whisper_partes("podcasts/not_enough.mp3", "not_enough", modelo_whisper, client)
 
     #transcricao_completa = openai_whisper(caminho_audio, nome_arquivo, modelo_whisper, client)
     transcricao_completa = carrega("resposta_WATCH_THIS_EVERYDAY_AND_CHANGE_YOUR_LIFE_Denzel_Washington_Motivational_Speech_2023.txt", "r")
@@ -165,8 +259,15 @@ def main():
 
     #hashtags = criar_hashtag(resumo_instagram, nome_arquivo, client)
     hashtags = carrega("respota_hashtags.txt","r")
-
-    resumo_texto_imagem = gerar_texto_imagem(resumo_instagram, nome_arquivo, client)
     
+    #resumo_texto_imagem = gerar_texto_imagem(resumo_instagram, nome_arquivo, client)
+    resumo_texto_imagem = carrega("respota_texto_imagem.txt", "r")
+
+    #url_imagem = openai_dalle_gerar_imagem("1024x1024",resumo_texto_imagem, "dall-e-2", client, qtd_imagens)
+
+    #download_imagem(nome_arquivo, url_imagem, qtd_imagens)
+
+    
+
 if __name__ == "__main__":
     main()

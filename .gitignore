@@ -2,3 +2,5 @@
 *.env
 venv
 /podcasts/
+images/*
+*.exe
