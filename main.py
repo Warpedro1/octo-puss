@@ -3,6 +3,10 @@ from dotenv import load_dotenv
 import os
 import requests
 from pydub import AudioSegment
+from PIL import Image
+import time
+from instabot import Bot
+import shutil #permite apagar diretorios e arquivos
 
 def carrega(caminho, modo):
     try: 
@@ -196,9 +200,9 @@ def audio_em_partes(caminho_audio, arquivo):
     count_pedaco = 1 
     arquivos_exportados = []
 
-    while len(audio > 0):
+    while len(audio)>0:
         pedaco = audio[:dez_minutos]
-        nome_pedaco = f"{arquivo}_parte_{count_pedaco}.mp3"
+        nome_pedaco = f"podcasts/{arquivo}_parte_{count_pedaco}.mp3"
         pedaco.export(nome_pedaco, format="mp3")
         arquivos_exportados.append(nome_pedaco)
         audio = audio[dez_minutos:]
@@ -215,7 +219,7 @@ def openai_whisper_partes(caminho, nome_arquivo, modelo, client):
 
     for pedaco in lista_arquivos_audios:
    
-        audio = open(caminho,"rb")
+        audio = open(pedaco,"rb")
 
         resposta = client.audio.transcriptions.create(
             model = modelo,
@@ -227,6 +231,7 @@ def openai_whisper_partes(caminho, nome_arquivo, modelo, client):
         pedacos_audio.append(transcricao)
 
     transcricao = "".join(pedacos_audio)
+
     """ traducao = client.audio.translations.create(
         model=modelo,
         file=audio
@@ -236,6 +241,27 @@ def openai_whisper_partes(caminho, nome_arquivo, modelo, client):
     salva(f"respostas/resposta_{nome_arquivo}.txt" ,transcricao)
     
     return transcricao
+
+def selecionar_imagem (Lista_nome_imagens):
+    return Lista_nome_imagens[int(input("Qual imagem você deseja selecionar? "))]
+
+# código omitido
+
+def ferramenta_converter_png_para_jpg(caminho_imagem_escolhida, nome_arquivo):
+    img_png = Image.open(caminho_imagem_escolhida) 
+    img_png.save(caminho_imagem_escolhida.split(".")[0]+".jpg") 
+
+    return caminho_imagem_escolhida.split(".")[0] + ".jpg"
+
+def posta_inta(caimnho, texto,user, password):
+    if os.path.exists("config"):
+        shutil.remtree("config")
+
+    bot = Bot()
+
+    bot.login(username=user, password=password)
+
+    resposta = bot.upload_photo(caimnho,caption=texto)
 
 def main():
     load_dotenv()
@@ -249,7 +275,7 @@ def main():
 
     modelo_whisper ="whisper-1"
 
-    openai_whisper_partes("podcasts/not_enough.mp3", "not_enough", modelo_whisper, client)
+    openai_whisper_partes("podcasts/test.mp3", "test", modelo_whisper, client)
 
     #transcricao_completa = openai_whisper(caminho_audio, nome_arquivo, modelo_whisper, client)
     transcricao_completa = carrega("resposta_WATCH_THIS_EVERYDAY_AND_CHANGE_YOUR_LIFE_Denzel_Washington_Motivational_Speech_2023.txt", "r")

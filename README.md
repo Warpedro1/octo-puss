@@ -3,3 +3,5 @@ A comprehensive guide and toolkit for integrating GPT models with Instagram. Thi
 
 link to download FFMPEG in windows: https://www.gyan.dev/ffmpeg/builds/ ->> 
 ffmpeg-git-full.7z
+
+youtube video to mp3 ->> https://www-y2mate.blog/en/
